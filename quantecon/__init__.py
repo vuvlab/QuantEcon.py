@@ -12,6 +12,7 @@ from . import distributions
 from . import game_theory
 from . import quad
 from . import random
+from . import optimize
 
 #-Objects-#
 from .compute_fp import compute_fixed_point
@@ -19,12 +20,13 @@ from .discrete_rv import DiscreteRV
 from .ecdf import ECDF
 from .estspec import smooth, periodogram, ar_periodogram
 # from .game_theory import <objects-here> 							#Place Holder if we wish to promote any general objects to the qe namespace.
-from .graph_tools import DiGraph
-from .gridtools import cartesian, mlinspace
+from .graph_tools import DiGraph, random_tournament_graph
+from .gridtools import cartesian, mlinspace, simplex_grid, simplex_index
 from .kalman import Kalman
 from .lae import LAE
 from .arma import ARMA
 from .lqcontrol import LQ
+from .filter import hamilton_filter
 from .lqnash import nnash
 from .lss import LinearStateSpace
 from .matrix_eqn import solve_discrete_lyapunov, solve_discrete_riccati

@@ -1,10 +1,14 @@
-from distutils.core import setup
+# Use setuptools in preference to distutils
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 import os
 
 #-Write Versions File-#
 #~~~~~~~~~~~~~~~~~~~~~#
 
-VERSION = '0.3.5.1'
+VERSION = '0.4.0'
 
 def write_version_py(filename=None):
     """
@@ -92,12 +96,12 @@ CLASSIFIERS = [
 setup(name='quantecon',
       packages=['quantecon',
                 'quantecon.game_theory',
+                'quantecon.game_theory.game_generators',
                 'quantecon.markov',
+                'quantecon.optimize',
                 'quantecon.random',
                 'quantecon.tests',
                 'quantecon.util',
-                #-Deprecated-#
-                'quantecon.models',
                 ],
       version=VERSION,
       description=DESCRIPTION,
@@ -107,6 +111,13 @@ setup(name='quantecon',
       author='Thomas J. Sargent and John Stachurski (Project coordinators)',
       author_email='john.stachurski@gmail.com',
       url='https://github.com/QuantEcon/QuantEcon.py',  # URL to the repo
-      download_url='https://github.com/QuantEcon/QuantEcon.py/tarball/' + VERSION, 
-      keywords=['quantitative', 'economics']
+      download_url='https://github.com/QuantEcon/QuantEcon.py/tarball/' + VERSION,
+      keywords=['quantitative', 'economics'],
+      install_requires=[
+          'numba>=0.38',
+          'numpy',
+          'requests',
+          'scipy>=1.0.0',
+          'sympy',
+          ]
       )

@@ -1,7 +1,7 @@
-cartesian
-=========
+filter
+======
 
-.. automodule:: quantecon.cartesian
+.. automodule:: quantecon.filter
     :members:
     :undoc-members:
     :show-inheritance:

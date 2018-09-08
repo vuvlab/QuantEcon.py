@@ -1,8 +1,10 @@
 """
-Filename: kalman.py
-Reference: https://lectures.quantecon.org/py/kalman.html
-
 Implements the Kalman filter for a linear Gaussian state space model.
+
+References
+----------
+
+https://lectures.quantecon.org/py/kalman.html
 
 """
 from textwrap import dedent
@@ -19,7 +21,7 @@ class Kalman:
 
     .. math::
 
-        x_{t+1} = A x_t + C w_{t+1}
+        x_{t+1} = A x_t + C w_{t+1} \\
         y_t = G x_t + H v_t
 
     Here :math:`x_t` is the hidden state and :math:`y_t` is the measurement.
@@ -64,8 +66,8 @@ class Kalman:
     def __init__(self, ss, x_hat=None, Sigma=None):
         self.ss = ss
         self.set_state(x_hat, Sigma)
-        self.K_infinity = None
-        self.Sigma_infinity = None
+        self._K_infinity = None
+        self._Sigma_infinity = None
 
     def set_state(self, x_hat, Sigma):
         if Sigma is None:
@@ -88,6 +90,18 @@ class Kalman:
           - dimension of observation equation : {k}
         """
         return dedent(m.format(n=self.ss.n, k=self.ss.k))
+
+    @property
+    def Sigma_infinity(self):
+        if self._Sigma_infinity is None:
+            self.stationary_values()
+        return self._Sigma_infinity
+
+    @property
+    def K_infinity(self):
+        if self._K_infinity is None:
+            self.stationary_values()
+        return self._K_infinity
 
     def whitener_lss(self):
         r"""
@@ -143,13 +157,7 @@ class Kalman:
             This is the linear state space system that represents
             the whitened system
         """
-        # Check for steady state Sigma and K
-        if self.K_infinity is None:
-            Sig, K = self.stationary_values()
-            self.Sigma_infinity = Sig
-            self.K_infinity = K
-        else:
-            K = self.K_infinity
+        K = self.K_infinity
 
         # Get the matrix sizes
         n, k, m, l = self.ss.n, self.ss.k, self.ss.m, self.ss.l
@@ -247,6 +255,7 @@ class Kalman:
             The stationary Kalman gain.
 
         """
+
         # === simplify notation === #
         A, C, G, H = self.ss.A, self.ss.C, self.ss.G, self.ss.H
         Q, R = np.dot(C, C.T), np.dot(H, H.T)
@@ -258,7 +267,7 @@ class Kalman:
         K_infinity = dot(temp1, temp2)
 
         # == record as attributes and return == #
-        self.Sigma_infinity, self.K_infinity = Sigma_infinity, K_infinity
+        self._Sigma_infinity, self._K_infinity = Sigma_infinity, K_infinity
         return Sigma_infinity, K_infinity
 
     def stationary_coefficients(self, j, coeff_type='ma'):
@@ -277,9 +286,6 @@ class Kalman:
         # == simplify notation == #
         A, G = self.ss.A, self.ss.G
         K_infinity = self.K_infinity
-        # == make sure that K_infinity has actually been computed == #
-        if K_infinity is None:
-            S, K_infinity = self.stationary_values()
         # == compute and return coefficients == #
         coeffs = []
         i = 1
@@ -305,7 +311,4 @@ class Kalman:
         R = np.dot(H, H.T)
         Sigma_infinity = self.Sigma_infinity
 
-        # == make sure that Sigma_infinity has been computed == #
-        if Sigma_infinity is None:
-            Sigma_infinity, K = self.stationary_values()
         return dot(G, dot(Sigma_infinity, G.T)) + R

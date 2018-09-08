@@ -26,9 +26,13 @@ $ python qe_apidoc.py single  # generates the single directory
 
 Notes
 -----
-This file can also be run from within ipython using the %%run magic.
+1. This file can also be run from within ipython using the %%run magic.
 To do this, use one of the commands above and replace `python` with
 `%%run`
+
+2. Models has been removed. But leaving infrastructure here for qe_apidoc
+in the event we need it in the future
+
 
 """
 import os
@@ -58,10 +62,28 @@ game_theory_module_template = """{mod_name}
     :show-inheritance:
 """
 
+game_generators_module_template = """{mod_name}
+{equals}
+
+.. automodule:: quantecon.game_theory.game_generators.{mod_name}
+    :members:
+    :undoc-members:
+    :show-inheritance:
+"""
+
 markov_module_template = """{mod_name}
 {equals}
 
 .. automodule:: quantecon.markov.{mod_name}
+    :members:
+    :undoc-members:
+    :show-inheritance:
+"""
+
+optimize_module_template = """{mod_name}
+{equals}
+
+.. automodule:: quantecon.optimize.{mod_name}
     :members:
     :undoc-members:
     :show-inheritance:
@@ -120,6 +142,7 @@ mainly used by developers internal to the package.
 
    game_theory
    markov
+   optimize
    random
    tools
    util
@@ -185,11 +208,24 @@ def model_tool():
     # Alphabetize
     game_theory.sort()
 
+    # list file names with game_theory/game_generators
+    game_generators_files = glob("../quantecon/game_theory/game_generators/[a-z0-9]*.py")
+    game_generators = list(
+        map(lambda x: x.split('/')[-1][:-3], game_generators_files))
+    # Alphabetize
+    game_generators.sort()
+
     # list file names with markov
     markov_files = glob("../quantecon/markov/[a-z0-9]*.py")
     markov = list(map(lambda x: x.split('/')[-1][:-3], markov_files))
     # Alphabetize
     markov.sort()
+
+    # list file names with optimize
+    optimize_files = glob("../quantecon/optimize/[a-z0-9]*.py")
+    optimize = list(map(lambda x: x.split('/')[-1][:-3], optimize_files))
+    # Alphabetize
+    optimize.sort()
 
     # list file names with random
     random_files = glob("../quantecon/random/[a-z0-9]*.py")
@@ -210,7 +246,7 @@ def model_tool():
     # Alphabetize
     util.sort()
 
-    for folder in ["game_theory", "markov", "random", "tools", "util"]:
+    for folder in ["game_theory", "markov", "optimize", "random", "tools", "util"]:
         if not os.path.exists(source_join(folder)):
             os.makedirs(source_join(folder))
 
@@ -221,12 +257,28 @@ def model_tool():
             equals = "=" * len(mod)
             f.write(game_theory_module_template.format(mod_name=mod, equals=equals))
 
+    for mod in game_generators:
+        new_path = os.path.join("source", "game_theory", "game_generators", mod + ".rst")
+        with open(new_path, "w") as f:
+            equals = "=" * len(mod)
+            f.write(game_generators_module_template.format(
+                mod_name=mod, equals=equals))
+        #Add sudirectory to flat game_theory list for index file
+        game_theory.append("game_generators/{}".format(mod))
+
     # Write file for each markov file
     for mod in markov:
         new_path = os.path.join("source", "markov", mod + ".rst")
         with open(new_path, "w") as f:
             equals = "=" * len(mod)
             f.write(markov_module_template.format(mod_name=mod, equals=equals))
+
+    # Write file for each optimize file
+    for mod in optimize:
+        new_path = os.path.join("source", "optimize", mod + ".rst")
+        with open(new_path, "w") as f:
+            equals = "=" * len(mod)
+            f.write(optimize_module_template.format(mod_name=mod, equals=equals))
 
     # Write file for each random file
     for mod in random:
@@ -255,24 +307,28 @@ def model_tool():
 
     gt = "game_theory/" + "\n   game_theory/".join(game_theory)
     mark = "markov/" + "\n   markov/".join(markov)
+    opti = "optimize/" + "\n   optimize/".join(optimize)
     rand = "random/" + "\n   random/".join(random)
     tlz = "tools/" + "\n   tools/".join(tools)
     utls = "util/" + "\n   util/".join(util)
     #-TocTree-#
     toc_tree_list = {"game_theory": gt,
                      "markov": mark,
+                     "optimize" : opti,
                      "tools": tlz,
                      "random": rand,
                      "util": utls,
                      }
 
-    for f_name in ("game_theory", "markov", "random", "tools", "util"):
+    for f_name in ("game_theory", "markov", "optimize", "random", "tools", "util"):
         with open(source_join(f_name + ".rst"), "w") as f:
             m_name = f_name
             if f_name == "game_theory":
                 f_name = "Game Theory"                                             #Produce Nicer Title for Game Theory Module
             if f_name == "util":
                 f_name = "Utilities"            #Produce Nicer Title for Utilities Module
+            if f_name == "optimize":
+                f_name = "Optimize"
             temp = split_file_template.format(name=f_name.capitalize(),
                                               equals="="*len(f_name),
                                               files=toc_tree_list[m_name])

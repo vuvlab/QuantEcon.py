@@ -1,6 +1,4 @@
 r"""
-Authors: Tomohiro Kusano, Daisuke Oyama
-
 Tools for normal form games.
 
 Definitions and Basic Concepts
@@ -288,7 +286,7 @@ class Player:
             array of floats (mixed action).
 
         tie_breaking : str, optional(default='smallest')
-            str in {'smallest', 'random', False}. Control how, or 
+            str in {'smallest', 'random', False}. Control how, or
             whether, to break a tie (see Returns for details).
 
         payoff_perturbation : array_like(float), optional(default=None)
@@ -380,6 +378,109 @@ class Player:
         else:
             return idx
 
+    def is_dominated(self, action, tol=None, method=None):
+        """
+        Determine whether `action` is strictly dominated by some mixed
+        action.
+
+        Parameters
+        ----------
+        action : scalar(int)
+            Integer representing a pure action.
+
+        tol : scalar(float), optional(default=None)
+            Tolerance level used in determining domination. If None,
+            default to the value of the `tol` attribute.
+
+        method : str, optional(default=None)
+            If None, `lemke_howson` from `quantecon.game_theory` is used
+            to solve for a Nash equilibrium of an auxiliary zero-sum
+            game. If `method` is set to `'simplex'` or
+            `'interior-point'`, `scipy.optimize.linprog` is used with
+            the method as specified by `method`.
+
+        Returns
+        -------
+        bool
+            True if `action` is strictly dominated by some mixed action;
+            False otherwise.
+
+        """
+        if tol is None:
+            tol = self.tol
+
+        payoff_array = self.payoff_array
+
+        if self.num_opponents == 0:
+            return payoff_array.max() > payoff_array[action] + tol
+
+        ind = np.ones(self.num_actions, dtype=bool)
+        ind[action] = False
+        D = payoff_array[ind]
+        D -= payoff_array[action]
+        if self.num_opponents >= 2:
+            D.shape = (D.shape[0], np.prod(D.shape[1:]))
+
+        if method is None:
+            from .lemke_howson import lemke_howson
+            g_zero_sum = NormalFormGame([Player(D), Player(-D.T)])
+            NE = lemke_howson(g_zero_sum)
+            return NE[0] @ D @ NE[1] > tol
+        elif method in ['simplex', 'interior-point']:
+            from scipy.optimize import linprog
+            m, n = D.shape
+            A = np.empty((n+2, m+1))
+            A[:n, :m] = -D.T
+            A[:n, -1] = 1  # Slack variable
+            A[n, :m], A[n+1, :m] = 1, -1  # Equality constraint
+            A[n:, -1] = 0
+            b = np.empty(n+2)
+            b[:n] = 0
+            b[n], b[n+1] = 1, -1
+            c = np.zeros(m+1)
+            c[-1] = -1
+            res = linprog(c, A_ub=A, b_ub=b, method=method)
+            if res.success:
+                return res.x[-1] > tol
+            elif res.status == 2:  # infeasible
+                return False
+            else:  # pragma: no cover
+                msg = 'scipy.optimize.linprog returned {0}'.format(res.status)
+                raise RuntimeError(msg)
+        else:
+            raise ValueError('Unknown method {0}'.format(method))
+
+    def dominated_actions(self, tol=None, method=None):
+        """
+        Return a list of actions that are strictly dominated by some
+        mixed actions.
+
+        Parameters
+        ----------
+        tol : scalar(float), optional(default=None)
+            Tolerance level used in determining domination. If None,
+            default to the value of the `tol` attribute.
+
+        method : str, optional(default=None)
+            If None, `lemke_howson` from `quantecon.game_theory` is used
+            to solve for a Nash equilibrium of an auxiliary zero-sum
+            game. If `method` is set to `'simplex'` or
+            `'interior-point'`, `scipy.optimize.linprog` is used with
+            the method as specified by `method`.
+
+        Returns
+        -------
+        list(int)
+            List of integers representing pure actions, each of which is
+            strictly dominated by some mixed action.
+
+        """
+        out = []
+        for action in range(self.num_actions):
+            if self.is_dominated(action, tol=tol, method=method):
+                out.append(action)
+        return out
+
 
 class NormalFormGame:
     """
@@ -414,6 +515,9 @@ class NormalFormGame:
 
     nums_actions : tuple(int)
         Tuple of the numbers of actions, one for each player.
+
+    payoff_arrays : tuple(ndarray(float, ndim=N))
+        Tuple of the payoff arrays, one for each player.
 
     """
     def __init__(self, data, dtype=None):
@@ -503,6 +607,9 @@ class NormalFormGame:
         self.N = N  # Number of players
         self.nums_actions = tuple(
             player.num_actions for player in self.players
+        )
+        self.payoff_arrays = tuple(
+            player.payoff_array for player in self.players
         )
 
     @property

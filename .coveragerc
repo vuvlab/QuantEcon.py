@@ -1,7 +1,7 @@
 [run]
 source = quantecon
 omit =
-	*/python?.?/*
+    */python?.?/*
     */lib-python/?.?/*.py
     */lib_pypy/_*.py
     */site-packages/ordereddict.py
@@ -28,5 +28,8 @@ exclude_lines =
     if __name__ == .__main__.:
 
     # Don't count Numba nopython=True jit functions
+    @jit
     @jit\(.*nopython=True
     @njit
+    @generated_jit\(.*nopython=True
+    @guvectorize\(.*nopython=True

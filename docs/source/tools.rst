@@ -5,13 +5,13 @@ Tools
    :maxdepth: 2
 
    tools/arma
-   tools/cartesian
    tools/ce_util
    tools/compute_fp
    tools/discrete_rv
    tools/distributions
    tools/ecdf
    tools/estspec
+   tools/filter
    tools/graph_tools
    tools/gridtools
    tools/ivp
